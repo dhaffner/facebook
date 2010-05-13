@@ -24,6 +24,15 @@ def facebook_init():
     facebook.auth.getSession()
     return facebook
 
+def maximalindependentset(G):
+    M = set()
+    for v in G:
+        S = M & G.neighbors(v)
+        if not S:
+            print v, S
+            M.add(v)
+    return M 
+
 def main():
     facebook = facebook_init()
 
@@ -35,15 +44,21 @@ def main():
     F = Graph([me])  # Create a graph whose sole vertex is me
     H = Graph()
 
+    # Problem: the FQL result on the next line only returns 5000 rows.
+    # We need a limit of (|friends| choose 2).
     result = facebook.fql.query(mutuals)
     for row in result:
         u, v = map(int, row.values())
         H.addedge(u, v)
     
     G = F + H  # Let G be the join of graphs F & H. 
-               # (This is the social graph.)  
+               # (This is the social graph.) 
     
-    print 'formed graph'
+    M = maximalindependentset(G)
+    names = (row["name"] for row in facebook.users.getInfo(",".join(map(str, M)), "name"))
+    
+    for name in names:
+        print name
 
 if __name__ == '__main__':
     main()

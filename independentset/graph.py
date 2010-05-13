@@ -74,6 +74,11 @@ class Graph:
     def neighbors(self, v):
         return self._neighbors[v]
     
+    def complement(self):
+        V = self.vertices()
+        E = set(product(V, V)) - self.edges()
+        return Graph(V, E)
+    
     def issubgraph(self, other):
         return self.vertices() <= other.vertices() and \
                self.edges() <= other.edges()
