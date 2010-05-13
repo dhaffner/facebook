@@ -17,7 +17,7 @@ class Graph:
     def vertices(self):
         return self._vertices
     
-    def edges():
+    def edges(self):
         return self._edges
     
     def order(self):
@@ -26,40 +26,40 @@ class Graph:
     def size(self):
         return len(self._edges)
     
-    def has_edge(self, u, v):
-        return set([u, v]) in self._edges
+    def hasedge(self, u, v):
+        return (u, v) in self._edges or self.hasedge(v, u)
     
-    def has_vertex(self, v):
+    def hasvertex(self, v):
         return v in self._vertices
     
-    def add_vertex(self, v):
-        if self.has_vertex(v):
+    def addvertex(self, v):
+        if self.hasvertex(v):
             return
         
         self._vertices.add(v)
         self._neighbors[v] = set()
 
-    def add_edge(self, u, v):
+    def addedge(self, u, v):
         if u == v:
             return
         
-        self.add_vertex(u)
-        self.add_vertex(v)
+        self.addvertex(u)
+        self.addvertex(v)
     
-        self._edges.add(set([u, v]))
+        self._edges.add((u,v))
         self._neighbors[u].add(v)
         self._neighbors[v].add(u)
     
-    def remove_edge(self, u, v):
-        if not self.has_edge(u, v):
+    def removeedge(self, u, v):
+        if not self.hasedge(u, v):
             return
         
         self._edges.remove((u, v))
         self._neighbors[u].remove(v)
         self._neighbors[v].remove(u)
     
-    def remove_vertex(self, v):
-        if not self.has_vertex(v):
+    def removevertex(self, v):
+        if not self.hasvertex(v):
             return
         
         for u in self.neighbors(v):
@@ -78,22 +78,23 @@ class Graph:
         return self.vertices() <= other.vertices() and \
                self.edges() <= other.edges()
     
-    def iter_vertices(self):
+    def itervertices(self):
         return iter(self._vertices)
     
-    def iter_edges(self):
+    def iteredges(self):
         return iter(self._edges)
     
     def __add__(self, other):
         if isinstance(other, Graph):
             # The join of G + H consists of union(G, H) and all edges joining 
             # a vertex of G and a vertex of H.
-            V = self.vertices() | other.vertices()
+            U, W = self.vertices(), other.vertices()
+            V = U | W
             E = self.edges() | other.edges()
-            return Graph(V, E | set(product(U, V)))
+            return Graph(V, E | set(product(U, W)))
         
         H = deepcopy(self)
-        map(H.add_vertex, other)
+        map(H.addvertex, other)
         return H
     
     def __eq__(self, other):
@@ -119,16 +120,16 @@ class Graph:
     
     def __mul__(self, other):
         V = product(self.vertices(), other.vertices())
-        edge = lambda (u, v), (x, y): u == x and other.has_edge(v, y) or \
-                                      v == y and self.has_edge(u, x)
+        edge = lambda (u, v), (x, y): u == x and other.hasedge(v, y) or \
+                                      v == y and self.hasedge(u, x)
         E = filter(edge, product(V, V))
         return Graph(V, E)
     
     def __iter__(self):
-        return self.iter_vertices()
+        return self.itervertices()
     
     def __contains__(self, v):
-        return self.has_vertex(v)
+        return self.hasvertex(v)
     
     def __len__(self):
         return self.order()
