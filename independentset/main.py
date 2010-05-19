@@ -8,6 +8,10 @@
 # and possibly find a maximum set. This problem is NP-hard, so an 
 # approximation will most likely be used.
 
+from __future__ import division
+from time import time
+from itertools import combinations
+
 from facebook import Facebook
 from graph import Graph
 from info import API_KEY, SECRET
@@ -29,36 +33,64 @@ def maximalindependentset(G):
     for v in G:
         S = M & G.neighbors(v)
         if not S:
-            print v, S
             M.add(v)
     return M 
 
 def main():
     facebook = facebook_init()
-
-    friends = "SELECT uid2 FROM friend WHERE uid1=%s" % (facebook.uid)
-    mutuals = ("SELECT uid1, uid2 FROM friend WHERE uid1 "
-               "IN (%s) AND uid2 IN (%s)" % (friends, friends))
-               
     me = int(facebook.uid)
-    F = Graph([me])  # Create a graph whose sole vertex is me
-    H = Graph()
+    
+    # To overcome the 5000-result limit of FQL, we'll ask for at most
+    # at most (100 choose 2) == 4950 rows at once time.
+    blocksize = 100 
 
-    # Problem: the FQL result on the next line only returns 5000 rows.
-    # We need a limit of (|friends| choose 2).
-    result = facebook.fql.query(mutuals)
-    for row in result:
-        u, v = map(int, row.values())
-        H.addedge(u, v)
+    # Get my total friends count. Why does Facebook not have a simple
+    # API call for this?
+    count = len(facebook.fql.query(("SELECT '' FROM friend" 
+                                    " WHERE uid1=%s" % (me))))
+    # FQL querys
+    # friends - Get all UIDs of everyone I'm friends with.
+    # mutuals - Get all UID-pairs (u, v) such that u & v are both friends of
+    #           mine and friends of each other. In a functional way this may
+    #           be expressed like "filter(areFriends, zip(friends, friends))"
+    friends = lambda i: ("SELECT uid2 FROM friend WHERE"
+                         " uid1=%s"
+                         " LIMIT %d,%d" % (me, i * blocksize, blocksize))
+    mutuals = lambda i, j: ("SELECT uid1, uid2 FROM friend WHERE"
+                              " uid1 IN (%s) AND " 
+                              " uid2 IN (%s)" % (friends(i), friends(j))) 
+                                  
+    F = Graph([me])  # Create a graph whose sole vertex is me
+    H = Graph()  # Create an empty graph which we'll use as my social graph.
+    
+    blocks = range(int(round(count / blocksize)))
+    blockpairs = combinations(blocks, 2)    
+    
+    print "Building your social graph among %d vertices (friends)." % (count)
+    
+    t1 = time()
+    
+    for (i, j) in blockpairs:
+        result = facebook.fql.query(mutuals(i, j))
+        pairs = map(lambda row: map(int, row.values()), result)
+        map(lambda pair: H.addedge(*pair), pairs)
     
     G = F + H  # Let G be the join of graphs F & H. 
                # (This is the social graph.) 
     
-    M = maximalindependentset(G)
-    names = (row["name"] for row in facebook.users.getInfo(",".join(map(str, M)), "name"))
+    t2 = time()
     
+    print "Graph built in %.3fs." % ((t2 - t1) / 1000)
+    
+    M = maximalindependentset(G)
+    names = (row["name"] for row in 
+             facebook.users.getInfo(",".join(map(str, M)), "name"))
+    
+    print "Graph order: %d, size: %d" % (G.order(), G.size())
+    print
+    print "A maximal independent of cardinality %d:" % (len(M))
     for name in names:
-        print name
+        print "\t%s" % (name)
 
 if __name__ == '__main__':
     main()

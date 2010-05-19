@@ -46,7 +46,7 @@ class Graph:
         self.addvertex(u)
         self.addvertex(v)
     
-        self._edges.add((u,v))
+        self._edges.add((u, v))
         self._neighbors[u].add(v)
         self._neighbors[v].add(u)
     
@@ -63,7 +63,7 @@ class Graph:
             return
         
         for u in self.neighbors(v):
-            self.remove_edge(u, v)
+            self.removeedge(u, v)
         
         self._vertices.remove(v)
         del self._neighbors[v]
@@ -120,7 +120,7 @@ class Graph:
 
     def __sub__(self, other):
         H = deepcopy(self)
-        map(H.remove_vertex, other)
+        map(H.removevertex, other)
         return H
     
     def __mul__(self, other):
