@@ -10,7 +10,7 @@
 
 from __future__ import division
 from time import time
-from itertools import combinations
+from itertools import product
 
 from facebook import Facebook
 from graph import Graph
@@ -38,7 +38,7 @@ def maximalindependentset(G):
 
 def main():
     facebook = facebook_init()
-    me = int(facebook.uid)
+    me = facebook.uid
     
     # To overcome the 5000-result limit of FQL, we'll ask for at most
     # at most (100 choose 2) == 4950 rows at once time.
@@ -57,14 +57,14 @@ def main():
                          " uid1=%s"
                          " LIMIT %d,%d" % (me, i * blocksize, blocksize))
     mutuals = lambda i, j: ("SELECT uid1, uid2 FROM friend WHERE"
-                              " uid1 IN (%s) AND " 
-                              " uid2 IN (%s)" % (friends(i), friends(j))) 
+                            " uid1 IN (%s) AND " 
+                            " uid2 IN (%s)" % (friends(i), friends(j))) 
                                   
     F = Graph([me])  # Create a graph whose sole vertex is me
     H = Graph()  # Create an empty graph which we'll use as my social graph.
     
     blocks = range(int(round(count / blocksize)))
-    blockpairs = combinations(blocks, 2)    
+    blockpairs = filter(lambda (i, j): i <= j, product(blocks, repeat=2))
     
     print "Building your social graph among %d vertices (friends)." % (count)
     
@@ -72,7 +72,7 @@ def main():
     
     for (i, j) in blockpairs:
         result = facebook.fql.query(mutuals(i, j))
-        pairs = map(lambda row: map(int, row.values()), result)
+        pairs = map(lambda row: row.values(), result)
         map(lambda pair: H.addedge(*pair), pairs)
     
     G = F + H  # Let G be the join of graphs F & H. 
@@ -88,8 +88,8 @@ def main():
     
     print "Graph order: %d, size: %d" % (G.order(), G.size())
     print
-    print "A maximal independent of cardinality %d:" % (len(M))
-    for name in names:
+    print "A maximal independent set of cardinality %d:" % (len(M))
+    for name in sorted(names):
         print "\t%s" % (name)
 
 if __name__ == '__main__':

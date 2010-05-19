@@ -27,7 +27,7 @@ class Graph:
         return len(self._edges)
     
     def hasedge(self, u, v):
-        return (u, v) in self._edges or self.hasedge(v, u)
+        return (u, v) in self._edges or (v, u) in self._edges
     
     def hasvertex(self, v):
         return v in self._vertices
@@ -40,7 +40,7 @@ class Graph:
         self._neighbors[v] = set()
 
     def addedge(self, u, v):
-        if u == v:
+        if u == v or self.hasedge(u, v):
             return
         
         self.addvertex(u)
