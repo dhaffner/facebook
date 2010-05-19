@@ -81,7 +81,7 @@ def main():
     
     t2 = time()
     
-    print "Graph built in %.3fs." % ((t2 - t1) / 1000)
+    print "Graph built in %.3fs." % (t2 - t1)
     
     M = maximalindependentset(G)
     names = (row["name"] for row in 
