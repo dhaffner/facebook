@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from copy import deepcopy
-from itertools import product, starmap
+from itertools import product
 from collections import defaultdict
 
 class Graph:
@@ -99,7 +99,8 @@ class Graph:
             return Graph(V, E | set(product(U, W)))
         
         H = deepcopy(self)
-        map(H.addvertex, other)
+        for v in other:
+            H.addvertex(v)
         return H
     
     def __eq__(self, other):
@@ -120,7 +121,8 @@ class Graph:
 
     def __sub__(self, other):
         H = deepcopy(self)
-        map(H.removevertex, other)
+        for v in other:
+            H.removevertex(v)
         return H
     
     def __mul__(self, other):

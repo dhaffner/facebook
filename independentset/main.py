@@ -72,8 +72,9 @@ def main():
     
     for (i, j) in blockpairs:
         result = facebook.fql.query(mutuals(i, j))
-        pairs = map(lambda row: row.values(), result)
-        map(lambda pair: H.addedge(*pair), pairs)
+        edges = (row.values() for row in result)
+        for (u, v) in edges:
+            H.addedge(u, v)
     
     G = F + H  # Let G be the join of graphs F & H. 
                # (This is the social graph.) 
