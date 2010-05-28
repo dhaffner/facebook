@@ -4,6 +4,22 @@ from copy import deepcopy
 from itertools import product
 from collections import defaultdict
 
+# TODO:
+# - line graph
+# - (if possible, I doubt it:) dual graph
+# - powers of a graph
+# - cardinality of max clique
+# - (edge-)induced subgraph
+# - min/max degree
+# - add optional weight function paramter to constructor
+# - d(u, v) - distance. (may be interesting to have a sort of 'online'
+#   all-pairs shortest path)
+# - I[u,v] - set of vertices that line on on a u-v geodesic.
+# - I[S] - union(I[u,v] where u, v in S)
+# - k(G) - # of components. also would be interesting to see if I can
+#   have an 'online' algorithm for this as well.
+# - C(G) - closure of G.
+ 
 class Graph:
     def __init__(self, V=None, E=None):
         self._edges = set(E or [])
@@ -66,7 +82,30 @@ class Graph:
             self.removeedge(u, v)
         
         self._vertices.remove(v)
-        del self._neighbors[v]
+    
+    def popvertex(self, pred=None):
+        """
+        Pop and return an arbitrary vertex v of G such that pred(v) is true.
+        If pred is not specified, an arbitrary vertex is popped.
+        """
+        if len(self) == 0:
+            return
+        
+        w = None
+        if pred:
+            for v in self:
+                if pred(v):
+                    w = v
+                    break
+            if not w:
+                return
+        else:
+            w = self._vertices.pop()
+            
+        for u in self.neighbors(w):
+            self.removeedge(u, w)
+            
+        return w
     
     def degree(self, v):
         return len(self.neighbors(v))
@@ -79,10 +118,17 @@ class Graph:
         E = set(product(V, V)) - self.edges()
         return Graph(V, E)
     
+    def join(self, H):
+        # The join of G + H consists of union(G, H) and all edges joining 
+        # a vertex of G and a vertex of H.
+        self._vertices |= H.vertices()
+        self._edges |= H.edges()
+        self._edges |= set(product(self.vertices(), H.vertices()))
+    
     def issubgraph(self, other):
         return self.vertices() <= other.vertices() and \
                self.edges() <= other.edges()
-    
+        
     def itervertices(self):
         return iter(self._vertices)
     
@@ -119,6 +165,12 @@ class Graph:
         E = self.edges() | other.edges()
         return Graph(V, E)
 
+    def __and__(self, other):
+        # intersection(G, H)
+        V = self.vertices() & other.vertices()
+        E = self.edges() & other.edges()
+        return Graph(V, E)
+
     def __sub__(self, other):
         H = deepcopy(self)
         for v in other:
@@ -140,3 +192,39 @@ class Graph:
     
     def __len__(self):
         return self.order()
+        
+    def __iadd__(self, other):
+        if isinstance(other, Graph):
+            self.join(other)
+        else:
+            for v in other:
+                self.addvertex(v)
+        
+    def __isub__(self, other):
+        for v in other:
+            self.removevertex(v)
+
+    def __iand__(self, other):
+        self._vertices &= other.vertices()
+        self._edges &= other.edges()
+        
+    def __ior__(self, other):
+        # union(G, H)
+        self._vertices |= other.vertices()
+        self._edges |= other.edges()
+
+def maximumindepdentset(G):
+    # Returns the cardinality of the largest independent set in G.
+    # Reference:
+    # http://http://books.google.com/books?id=jGD9pNFKI2UC&lpg=PA61&pg=PA62
+    if G.size() == 0: # if G has no edges
+        return G.order()
+    else:
+        # "Choose some nonisolated vertex v* of G"
+        nonisolated = lambda v: G.degree(v) > 1
+        v = G.popvertex(pred=nonisolated)
+        
+        # Below we write "G" instead of "G - v" since we already popped v.
+        i = maximumindependentset(G)
+        j = maximumindependentset(G - G.neighbors(v))
+        return max(i, 1 + j)

@@ -33,7 +33,7 @@ def maximalindependentset(G):
     for v in G:
         S = M & G.neighbors(v)
         if not S:
-            M.add(v)
+            M.add(v)        
     return M 
 
 def main():
@@ -41,7 +41,7 @@ def main():
     me = facebook.uid
     
     # To overcome the 5000-result limit of FQL, we'll ask for at most
-    # at most (100 choose 2) == 4950 rows at once time.
+    # at most (100 choose 2) = 4950 rows at once time.
     blocksize = 100 
 
     # Get my total friends count. Why does Facebook not have a simple
@@ -52,7 +52,8 @@ def main():
     # friends - Get all UIDs of everyone I'm friends with.
     # mutuals - Get all UID-pairs (u, v) such that u & v are both friends of
     #           mine and friends of each other. In a functional way this may
-    #           be expressed like "filter(areFriends, zip(friends, friends))"
+    #           be expressed like:
+    #               filter(areFriends, product(friends, friends))
     friends = lambda i: ("SELECT uid2 FROM friend WHERE"
                          " uid1=%s"
                          " LIMIT %d,%d" % (me, i * blocksize, blocksize))
@@ -63,6 +64,8 @@ def main():
     F = Graph([me])  # Create a graph whose sole vertex is me
     H = Graph()  # Create an empty graph which we'll use as my social graph.
     
+    # The following addresses the FQL result limit by splitting my friends
+    # into blocks and finding edges using blockwise comparisons.
     blocks = range(int(round(count / blocksize)))
     blockpairs = filter(lambda (i, j): i <= j, product(blocks, repeat=2))
     
@@ -71,26 +74,33 @@ def main():
     t1 = time()
     
     for (i, j) in blockpairs:
+        # Get all edges between a friend in block i and a friend in block j.
         result = facebook.fql.query(mutuals(i, j))
         edges = (row.values() for row in result)
         for (u, v) in edges:
             H.addedge(u, v)
     
-    G = F + H  # Let G be the join of graphs F & H. 
-               # (This is the social graph.) 
+    # Let G be the join of graphs F and H -- this is my social graph.
+    G = F + H
     
     t2 = time()
     
     print "Graph built in %.3fs." % (t2 - t1)
-    
+
+    # Note: the maximal independent set we generate below should be the same
+    # if we just use the graph H (meaning, if we omit 'me'). I use G instead
+    # so that the full social graph is available for later uses.
     M = maximalindependentset(G)
-    names = (row["name"] for row in 
-             facebook.users.getInfo(",".join(map(str, M)), "name"))
+    
+    # Get the names of all UIDs in M
+    names = sorted(row["name"] for row in 
+                 facebook.users.getInfo(",".join(map(str, M)), "name"))
     
     print "Graph order: %d, size: %d" % (G.order(), G.size())
     print
     print "A maximal independent set of cardinality %d:" % (len(M))
-    for name in sorted(names):
+    
+    for name in names:
         print "\t%s" % (name)
 
 if __name__ == '__main__':
