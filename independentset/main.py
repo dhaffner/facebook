@@ -94,7 +94,7 @@ def main():
     
     # Get the names of all UIDs in M
     names = sorted(row["name"] for row in 
-                 facebook.users.getInfo(",".join(map(str, M)), "name"))
+                   facebook.users.getInfo(",".join(map(str, M)), "name"))
     
     print "Graph order: %d, size: %d" % (G.order(), G.size())
     print

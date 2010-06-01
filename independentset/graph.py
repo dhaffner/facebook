@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
+from __future__ import division
 from copy import deepcopy
 from itertools import product
 from collections import defaultdict
 
 # TODO:
 # - line graph
-# - (if possible, I doubt it:) dual graph
 # - powers of a graph
 # - cardinality of max clique
 # - (edge-)induced subgraph
@@ -18,10 +18,9 @@ from collections import defaultdict
 # - I[S] - union(I[u,v] where u, v in S)
 # - k(G) - # of components. also would be interesting to see if I can
 #   have an 'online' algorithm for this as well.
-# - C(G) - closure of G.
  
 class Graph:
-    def __init__(self, V=None, E=None):
+    def __init__(self, V=None, E=None, w=None):
         self._edges = set(E or [])
         self._vertices = set(V or [])
         self._neighbors = defaultdict(lambda: set())
@@ -41,7 +40,12 @@ class Graph:
     
     def size(self):
         return len(self._edges)
-    
+
+    def density(self):
+        m = self.size()
+        n = self.order()
+        return (2 * m) / (n * (n - 1))
+
     def hasedge(self, u, v):
         return (u, v) in self._edges or (v, u) in self._edges
     
@@ -117,6 +121,29 @@ class Graph:
         V = self.vertices()
         E = set(product(V, V)) - self.edges()
         return Graph(V, E)
+    
+    def closure(self):
+        getpairs = lambda G: \
+                   filter(lambda (u, v): (G.degree(u) + G.degree(v))  >= n,
+                          product(G.vertices(), G.vertices()))
+        
+        # There's a closure joke hiding in here somewhere.
+        def joinpairs(G):
+            pairs = getpairs(G)
+            
+            # If there are no two vertices whose total degree is greater than
+            # the order of G, then G is its own closure.
+            if not pairs:
+                return G
+                
+            for (u, v) in pairs:
+                G.addedge(u, v)
+                
+            # Recursive call to keep forming the closure of G.
+            # The end case is when no pairs are left and is handled above.
+            return joinpairs(G)
+            
+        return joinpairs(deepcopy(self))       
     
     def join(self, H):
         # The join of G + H consists of union(G, H) and all edges joining 
