@@ -4,20 +4,20 @@ from __future__ import division
 from copy import deepcopy
 from itertools import product
 from collections import defaultdict
+from operator import add
 
 # TODO:
-# - line graph
-# - powers of a graph
-# - cardinality of max clique
-# - (edge-)induced subgraph
-# - min/max degree
-# - add optional weight function paramter to constructor
 # - d(u, v) - distance. (may be interesting to have a sort of 'online'
 #   all-pairs shortest path)
-# - I[u,v] - set of vertices that line on on a u-v geodesic.
-# - I[S] - union(I[u,v] where u, v in S)
+# -- powers of a graph
+# -- I[u,v] - set of vertices that line on on a u-v geodesic.
+# -- I[S] - union(I[u,v] where u, v in S)
+# - cardinality of max clique
+# - min/max degree
+# - add optional weight function paramter to constructor
 # - k(G) - # of components. also would be interesting to see if I can
 #   have an 'online' algorithm for this as well.
+# - comment code properly.
  
 class Graph:
     def __init__(self, V=None, E=None, w=None):
@@ -143,7 +143,47 @@ class Graph:
             # The end case is when no pairs are left and is handled above.
             return joinpairs(G)
             
-        return joinpairs(deepcopy(self))       
+        return joinpairs(deepcopy(self))
+
+    def linegraph(self):
+		"""
+		Given a graph G, its line graph L(G) is a graph such that
+		- each vertex of L(G) represents an edge of G; and
+		- two vertices of L(G) are adjacent if and only if their corresponding
+		  edges share a common endpoint ("are adjacent") in G.
+		That is, it is the intersection graph of the edges of G, representing 
+		each edge by the set of its two endpoints.
+		"""
+		V = self.edges()
+		E = filter(lambda (u, v), e: u in e or v in e, product(V, V))
+  		return Graph(V, E)
+
+    def inducedsubgraph(self, V):
+        """
+        A subgraph H of a graph G is said to be induced if, for any pair of 
+        vertices x and y of H, xy is an edge of H if and only if xy is an edge
+        of G.		
+        """
+        # ensure that we're given a subset of vertices in this graph
+        if not V <= self.vertices():
+            return
+
+        E = filter(lambda e: e in self.edges(), product(V, V))
+        return Graph(V, E)
+        
+    def edgeinducedsubgraph(self, E):
+        """
+        An edge-induced subgraph is a subset of the edges of a graph together 
+        with any vertices that are their endpoints.
+        """
+        # ensure that we're given a subset of edges in this graph
+        if not E <= self.edges():
+            return
+        
+        # "flatten" the set of edges into a set of vertices (the add operator
+        # works on tuples)
+        V = set(reduce(add, E))
+        return Graph(V, E)
     
     def join(self, H):
         # The join of G + H consists of union(G, H) and all edges joining 
