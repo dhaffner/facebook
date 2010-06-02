@@ -3,9 +3,9 @@
 # Consider the graph G = (V, E) formed letting:
 # - V = {me and the people I'm Facebook friends with}
 # - E = {(u, v): u and v are Facebook friends}
-# 
+#
 # I want to determine the cardinality of the maximum independent set in G,
-# and possibly find a maximum set. This problem is NP-hard, so an 
+# and possibly find a maximum set. This problem is NP-hard, so an
 # approximation will most likely be used.
 
 from __future__ import division
@@ -21,10 +21,10 @@ def facebook_init():
 
     facebook.auth.createToken()
     facebook.login()
-    
+
     print 'After logging in, press any key...'
     raw_input()
-    
+
     facebook.auth.getSession()
     return facebook
 
@@ -33,20 +33,20 @@ def maximalindependentset(G):
     for v in G:
         S = M & G.neighbors(v)
         if not S:
-            M.add(v)        
-    return M 
+            M.add(v)
+    return M
 
 def main():
     facebook = facebook_init()
     me = facebook.uid
-    
+
     # To overcome the 5000-result limit of FQL, we'll ask for at most
     # at most (100 choose 2) = 4950 rows at once time.
-    blocksize = 100 
+    blocksize = 100
 
     # Get my total friends count. Why does Facebook not have a simple
     # API call for this?
-    count = len(facebook.fql.query(("SELECT '' FROM friend" 
+    count = len(facebook.fql.query(("SELECT '' FROM friend"
                                     " WHERE uid1=%s" % (me))))
     # FQL querys
     # friends - Get all UIDs of everyone I'm friends with.
@@ -58,48 +58,48 @@ def main():
                          " uid1=%s"
                          " LIMIT %d,%d" % (me, i * blocksize, blocksize))
     mutuals = lambda i, j: ("SELECT uid1, uid2 FROM friend WHERE"
-                            " uid1 IN (%s) AND " 
-                            " uid2 IN (%s)" % (friends(i), friends(j))) 
-                                  
+                            " uid1 IN (%s) AND "
+                            " uid2 IN (%s)" % (friends(i), friends(j)))
+
     F = Graph([me])  # Create a graph whose sole vertex is me
     H = Graph()  # Create an empty graph which we'll use as my social graph.
-    
+
     # The following addresses the FQL result limit by splitting my friends
     # into blocks and finding edges using blockwise comparisons.
     blocks = range(int(round(count / blocksize)))
     blockpairs = filter(lambda (i, j): i <= j, product(blocks, repeat=2))
-    
+
     print "Building your social graph among %d vertices (friends)." % (count)
-    
+
     t1 = time()
-    
+
     for (i, j) in blockpairs:
         # Get all edges between a friend in block i and a friend in block j.
         result = facebook.fql.query(mutuals(i, j))
         edges = (row.values() for row in result)
         for (u, v) in edges:
             H.addedge(u, v)
-    
+
     # Let G be the join of graphs F and H -- this is my social graph.
     G = F + H
-    
+
     t2 = time()
-    
+
     print "Graph built in %.3fs." % (t2 - t1)
 
     # Note: the maximal independent set we generate below should be the same
     # if we just use the graph H (meaning, if we omit 'me'). I use G instead
     # so that the full social graph is available for later uses.
     M = maximalindependentset(G)
-    
+
     # Get the names of all UIDs in M
-    names = sorted(row["name"] for row in 
+    names = sorted(row["name"] for row in
                    facebook.users.getInfo(",".join(map(str, M)), "name"))
-    
+
     print "Graph order: %d, size: %d" % (G.order(), G.size())
     print
     print "A maximal independent set of cardinality %d:" % (len(M))
-    
+
     for name in names:
         print "\t%s" % (name)
 

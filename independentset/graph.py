@@ -146,17 +146,17 @@ class Graph:
         return joinpairs(deepcopy(self))
 
     def linegraph(self):
-		"""
-		Given a graph G, its line graph L(G) is a graph such that
-		- each vertex of L(G) represents an edge of G; and
-		- two vertices of L(G) are adjacent if and only if their corresponding
-		  edges share a common endpoint ("are adjacent") in G.
-		That is, it is the intersection graph of the edges of G, representing
-		each edge by the set of its two endpoints.
-		"""
-		V = self.edges()
-		E = filter(lambda (u, v), e: u in e or v in e, product(V, V))
-  		return Graph(V, E)
+        """
+        Given a graph G, its line graph L(G) is a graph such that
+        - each vertex of L(G) represents an edge of G; and
+        - two vertices of L(G) are adjacent if and only if their corresponding
+        edges share a common endpoint ("are adjacent") in G.
+        That is, it is the intersection graph of the edges of G, representing
+        each edge by the set of its two endpoints.
+        """
+        V = self.edges()
+        E = filter(lambda (u, v), e: u in e or v in e, product(V, V))
+        return Graph(V, E)
 
     def inducedsubgraph(self, V):
         """
